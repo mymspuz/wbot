@@ -15,25 +15,22 @@ class BotDB:
         fields = ', '.join(list_fields)
         sql_text = f'SELECT {fields} FROM {table_name} WHERE id = :id'
         sql_params = {'id': item_id}
-        cursor = self.conn.cursor()
-        cursor.execute(sql_text, sql_params)
-        return cursor.fetchone()
+        self.cursor.execute(sql_text, sql_params)
+        return self.cursor.fetchone()
 
     def get_list(self, table_name, list_fields=None):
         if list_fields is None:
             list_fields = ['*']
         fields = ', '.join(list_fields)
         sql_text = f'SELECT {fields} FROM {table_name}'
-        cursor = self.conn.cursor()
-        cursor.execute(sql_text)
-        return cursor.fetchall()
+        self.cursor.execute(sql_text)
+        return self.cursor.fetchall()
 
     def remove_item(self, table_name, item_id):
         sql_text = f'DELETE FROM {table_name} WHERE id = :id'
         sql_params = {'id': item_id}
         try:
-            cursor = self.conn.cursor()
-            cursor.execute(sql_text, sql_params)
+            self.cursor.execute(sql_text, sql_params)
             self.conn.commit()
         except Exception as e:
             return False
@@ -47,7 +44,7 @@ class BotDB:
         sql_text = 'SELECT sum(value) FROM bot_payments WHERE user = :id  AND date <= :date GROUP BY user'
         sum_payments = self._get_sum(sql_text, user_id, date)
         if not sum_payments.get('result', True):
-            return sum_purchases
+            return sum_payments
         return {'result': True, 'msg': sum_payments['sum'] - sum_purchases['sum']}
 
     def _get_sum(self, sql_text, user_id, date):
@@ -70,11 +67,10 @@ class BotUsers(BotDB):
             'access': True if data[2].upper() == 'Y' else False
         }
         try:
-            cursor = self.conn.cursor()
-            cursor.execute(sql_text, sql_params)
+            self.cursor.execute(sql_text, sql_params)
             self.conn.commit()
-        except Exception:
-            return False, 'Error sql query!!!'
+        except Exception as e:
+            return False, str(e)
         return True, ''
 
     def edit_user(self, data, user_id):
@@ -89,11 +85,10 @@ class BotUsers(BotDB):
             'id': user_id
         }
         try:
-            cursor = self.conn.cursor()
-            cursor.execute(sql_text, sql_params)
+            self.cursor.execute(sql_text, sql_params)
             self.conn.commit()
-        except Exception:
-            return False, 'Error sql query!!!'
+        except Exception as e:
+            return False, str(e)
         return True, ''
 
     def check_data(self, data, user_id=0):
@@ -107,9 +102,8 @@ class BotUsers(BotDB):
             and_id = ' AND id <> :id'
             sql_params['id'] = user_id
         sql_text = f'SELECT id FROM bot_users WHERE (name = :name{or_t_name}){and_id} LIMIT 1'
-        cursor = self.conn.cursor()
-        cursor.execute(sql_text, sql_params)
-        sql_result = cursor.fetchone()
+        self.cursor.execute(sql_text, sql_params)
+        sql_result = self.cursor.fetchone()
         return False if sql_result else True
 
 
@@ -122,11 +116,10 @@ class BotItemsExpenses(BotDB):
             'name': data,
         }
         try:
-            cursor = self.conn.cursor()
-            cursor.execute(sql_text, sql_params)
+            self.cursor.execute(sql_text, sql_params)
             self.conn.commit()
-        except Exception:
-            return False, 'Error sql query!!!'
+        except Exception as e:
+            return False, str(e)
         return True, ''
 
     def check_data(self, data, iexp_id=0):
@@ -136,9 +129,8 @@ class BotItemsExpenses(BotDB):
             and_id = ' AND id <> :id'
             sql_params['id'] = iexp_id
         sql_text = f'SELECT id FROM bot_items_expenses WHERE name = :name{and_id}'
-        cursor = self.conn.cursor()
-        cursor.execute(sql_text, sql_params)
-        sql_result = cursor.fetchone()
+        self.cursor.execute(sql_text, sql_params)
+        sql_result = self.cursor.fetchone()
         return False if sql_result else True
 
     def edit_iexp(self, data, iexp_id):
@@ -150,11 +142,10 @@ class BotItemsExpenses(BotDB):
             'id': iexp_id
         }
         try:
-            cursor = self.conn.cursor()
-            cursor.execute(sql_text, sql_params)
+            self.cursor.execute(sql_text, sql_params)
             self.conn.commit()
-        except Exception:
-            return False, 'Error sql query!!!'
+        except Exception as e:
+            return False, str(e)
         return True, ''
 
 
@@ -268,8 +259,8 @@ class BotPurchases(BotDB):
                 duty = self.get_balance(i['user'], data['date'])
                 self.cursor.execute(sql_text, sql_params)
                 self.conn.commit()
-            except Exception:
-                return {'result': False, 'msg': 'Operation error DB!!!'}
+            except Exception as e:
+                return {'result': False, 'msg': str(e)}
             if duty['msg']:
                 label = 'Долг' if duty['msg'] < 0 else 'Переплата'
                 corr = i['price'] - duty['msg']
@@ -307,8 +298,8 @@ class BotPurchases(BotDB):
         try:
             self.cursor.execute(sql_text, sql_params)
             sql_result = self.cursor.fetchall()
-        except Exception:
-            return {'result': False, 'msg': 'Operation error DB!!!'}
+        except Exception as e:
+            return {'result': False, 'msg': str(e)}
         if sql_result:
             diff = round(sql_result[-1][0] - sql_result[0][0], 2)
             return {'id': user_id, 'name': user_name, 'meter': diff}
