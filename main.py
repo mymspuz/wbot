@@ -46,11 +46,11 @@ def get_cur_db():
         logging.error('No file DB')
         return False
     try:
-        conn = sqlite3.connect('wbot.db', check_same_thread=False)
-    except Exception:
-        logging.error('Error connect DB')
+        db = sqlite3.connect('wbot.db', check_same_thread=False)
+    except Exception as e:
+        logging.error(str(e))
         return False
-    return conn
+    return db
 
 
 def get_user_access(user_name):
@@ -78,13 +78,13 @@ def check_date_value(data):
         try:
             v_date = datetime.datetime.strptime(v_date, '%d.%m.%y')
             v_date = datetime.date(v_date.year, v_date.month, v_date.day)
-        except:
+        except Exception as e:
             return {'result': False, 'msg': 'Incorrect Date!!!'}
     else:
         v_date = datetime.date.today()
     try:
         v_meter = round(float(v_meter), 2)
-    except:
+    except Exception as e:
         return {'result': False, 'msg': 'Incorrect Meter!!!'}
     return {'result': True, 'date':v_date, 'value': v_meter}
 
